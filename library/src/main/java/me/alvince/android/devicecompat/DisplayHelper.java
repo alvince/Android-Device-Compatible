@@ -32,6 +32,7 @@ import android.os.Build;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.RequiresApi;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.View;
@@ -45,7 +46,7 @@ import android.view.WindowManager;
  *
  * @author alvince.zy@gmail.com
  */
-public class ScreenUtils {
+public class DisplayHelper {
 
     private static final String IDENTIFIER_STATUS_BAR_SIZE = "status_bar_height";
     private static final String IDENTIFIER_NAV_BAR_HEIGHT = "navigation_bar_height";
@@ -236,6 +237,30 @@ public class ScreenUtils {
             }
         }
         view.setSystemUiVisibility(uiVisibility);
+    }
+
+    /**
+     * 调整系统状态栏色调
+     *
+     * @param dark light mode
+     * @return if system ui stay light mode
+     */
+    @RequiresApi(Build.VERSION_CODES.KITKAT)
+    public static boolean reverseSystemUIStandard(@NonNull Activity activity, boolean dark) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Window window = activity.getWindow();
+            View decorView = window.getDecorView();
+            if (dark) {
+                decorView.setSystemUiVisibility(decorView.getSystemUiVisibility() | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+            } else {
+                int systemUiVisibility = decorView.getSystemUiVisibility();
+                if ((systemUiVisibility & View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR) == View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR) {
+                    decorView.setSystemUiVisibility(systemUiVisibility ^ View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+                }
+            }
+            return dark;
+        }
+        return false;
     }
 
     private static int getInternalDimensionSize(Resources res, String key) {

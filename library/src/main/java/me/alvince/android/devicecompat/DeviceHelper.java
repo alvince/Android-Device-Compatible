@@ -23,12 +23,15 @@
 package me.alvince.android.devicecompat;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.content.res.Resources;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Environment;
 import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 import android.text.TextUtils;
 import android.view.View;
 import android.view.ViewConfiguration;
@@ -41,6 +44,8 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Properties;
 
+import me.alvince.android.devicecompat.vendor.flyme.StatusbarColorUtils;
+
 /**
  * Created by alvince on 2018/7/27
  *
@@ -49,6 +54,14 @@ import java.util.Properties;
 public class DeviceHelper {
 
     interface DeviceCompat {
+        /**
+         * Reverse system ui color mode
+         *
+         * @param dark light mode
+         * @return if system ui stay light mode
+         */
+        boolean makeSystemUIReverse(@NonNull Activity activity, boolean dark);
+
         /**
          * 是否有屏幕凹陷（刘海屏）
          */
@@ -148,8 +161,6 @@ public class DeviceHelper {
 
     /**
      * 隐藏虚拟按键栏
-     *
-     * @param contentView
      */
     public static void hideNavigationBar(final View contentView) {
         if (contentView == null) return;
@@ -169,6 +180,17 @@ public class DeviceHelper {
             }
         }, 200);
 
+    }
+
+    /**
+     * 调整系统状态栏色调
+     *
+     * @param dark light mode
+     * @return if system ui stay light mode
+     */
+    @RequiresApi(Build.VERSION_CODES.KITKAT)
+    public static boolean makeSystemUiReverse(@NonNull Activity activity, boolean dark) {
+        return SingletonHolder.INSTANCE.getCompatImpl().makeSystemUIReverse(activity, dark);
     }
 
     /**
@@ -250,7 +272,10 @@ public class DeviceHelper {
         if (validateRom(ROM_XIAOMI_MIUI)) {
             return new DeviceCompatXiaomi();
         }
-        return new DefaultCompat();
+        if (validateRom(ROM_MEIZU_FLYME)) {
+            return new DeviceCompatFlyme();
+        }
+        return new DeviceCompatStub();
     }
 
     private DeviceCompat getCompatImpl() {
@@ -317,32 +342,12 @@ public class DeviceHelper {
         static final DeviceHelper INSTANCE = new DeviceHelper();
     }
 
-    static class DefaultCompat implements DeviceCompat {
-
-        boolean hasScreenNotch = false;
-        float screehNotchHeight = 0;
-
-        DefaultCompat() {
-            L.d(TAG, "Device Compat IMPL => " + getClass().getSimpleName());
-        }
-
-        @Override
-        public boolean hasNotchInScreen(@NonNull Context context) {
-            return false;
-        }
-
-        @Override
-        public float getScreenNotchHeight(@NonNull Context context) {
-            return 0;
-        }
-    }
-
     /**
      * 华为手机兼容适配
      * <p>
      * &gt;&nbsp;<a href="http://developer.huawei.com/consumer/cn/devservice/doc/50114">刘海屏手机安卓O版本适配指导</a>
      */
-    private static class DeviceCompatHuawei extends DefaultCompat {
+    private static class DeviceCompatHuawei extends DeviceCompatStub {
         @Override
         public boolean hasNotchInScreen(@NonNull Context context) {
             if (!hasScreenNotch) {
@@ -365,7 +370,7 @@ public class DeviceHelper {
 
         @Override
         public float getScreenNotchHeight(@NonNull Context context) {
-            if (hasNotchInScreen(context) && screehNotchHeight == 0) {
+            if (hasNotchInScreen(context) && screenNotchHeight == 0) {
                 int[] ret;  // [ width, height ]
                 try {
                     ClassLoader cl = context.getClassLoader();
@@ -373,7 +378,7 @@ public class DeviceHelper {
                     //noinspection unchecked
                     Method get = HwNotchSizeUtil.getMethod("getNotchSize");
                     ret = (int[]) get.invoke(HwNotchSizeUtil);
-                    screehNotchHeight = ret[1];
+                    screenNotchHeight = ret[1];
                 } catch (ClassNotFoundException e) {
                     L.e(TAG, "getNotchSize ClassNotFoundException", e);
                 } catch (NoSuchMethodException e) {
@@ -382,16 +387,16 @@ public class DeviceHelper {
                     L.e(TAG, "getNotchSize Exception", e);
                 }
             }
-            return screehNotchHeight;
+            return screenNotchHeight;
         }
     }
 
     /**
-     * Oppo 手机兼容适配
+     * OPPO 手机兼容适配
      * <p>
      * &gt;&nbsp;<a href="https://open.oppomobile.com/wiki/doc#id=10159">OPPO 凹形屏适配说明</a>
      */
-    private static class DeviceCompatOppo extends DefaultCompat {
+    private static class DeviceCompatOppo extends DeviceCompatStub {
         @Override
         public boolean hasNotchInScreen(@NonNull Context context) {
             if (!hasScreenNotch) {
@@ -409,11 +414,11 @@ public class DeviceHelper {
     }
 
     /**
-     * Vivo 手机兼容适配
+     * VIVO 手机兼容适配
      * <p>
      * &gt;&nbsp;<a href="https://dev.vivo.com.cn/doc/document/info?id=103">全面屏应用适配指南</a>
      */
-    private static class DeviceCompatVivo extends DefaultCompat {
+    private static class DeviceCompatVivo extends DeviceCompatStub {
         @SuppressLint("PrivateApi")
         @Override
         public boolean hasNotchInScreen(@NonNull Context context) {
@@ -439,14 +444,14 @@ public class DeviceHelper {
 
         @Override
         public float getScreenNotchHeight(@NonNull Context context) {
-            return hasNotchInScreen(context) ? ScreenUtils.fromDip(context, 27) : 0;
+            return hasNotchInScreen(context) ? DisplayHelper.fromDip(context, 27) : 0;
         }
     }
 
     /**
      * OnePlus 手机兼容适配
      */
-    private static class DeviceComaptOnePlus extends DefaultCompat {
+    private static class DeviceComaptOnePlus extends DeviceCompatStub {
         @Override
         public boolean hasNotchInScreen(@NonNull Context context) {
             return supportNotch() || super.hasNotchInScreen(context);
@@ -455,7 +460,7 @@ public class DeviceHelper {
         @Override
         public float getScreenNotchHeight(@NonNull Context context) {
             if (supportNotch()) {
-                return ScreenUtils.getStatusBarSize(context);
+                return DisplayHelper.getStatusBarSize(context);
             }
             return super.getScreenNotchHeight(context);
         }
@@ -470,7 +475,27 @@ public class DeviceHelper {
      * <p>
      * &gt;&nbsp;<a href="https://dev.mi.com/console/doc/detail?pId=1293">小米 MIUI Notch 屏 Android O 适配说明</a>
      */
-    private static class DeviceCompatXiaomi extends DefaultCompat {
+    private static class DeviceCompatXiaomi extends DeviceCompatStub {
+        private MiUiSysUtils utils;
+
+        DeviceCompatXiaomi() {
+            super();
+            utils = new MiUiSysUtils(getBuildProps());
+        }
+
+        @Override
+        public boolean makeSystemUIReverse(@NonNull Activity activity, boolean dark) {
+            if (!requireSysUiReverse()) {
+                return false;
+            }
+            if (utils.isSupportSysUiModeStandard()) {
+                MiUiSysUtils.setStatusBarDarkMode(dark, activity);
+                return dark;
+            } else {
+                return super.makeSystemUIReverse(activity, dark);
+            }
+        }
+
         @Override
         public boolean hasNotchInScreen(@NonNull Context context) {
             if (!hasScreenNotch) {
@@ -481,7 +506,21 @@ public class DeviceHelper {
 
         @Override
         public float getScreenNotchHeight(@NonNull Context context) {
-            return hasNotchInScreen(context) ? ScreenUtils.getStatusBarSize(context) : 0;
+            return hasNotchInScreen(context) ? DisplayHelper.getStatusBarSize(context) : 0;
+        }
+    }
+
+    /**
+     * Flyme 手机兼容适配
+     */
+    private static class DeviceCompatFlyme extends DeviceCompatStub {
+        @Override
+        public boolean makeSystemUIReverse(@NonNull Activity activity, boolean dark) {
+            if (!requireSysUiReverse()) {
+                return false;
+            }
+            StatusbarColorUtils.setStatusBarDarkIcon(activity, dark ? Color.BLACK : Color.WHITE);
+            return dark;
         }
     }
 }
