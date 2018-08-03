@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Compat Sample</string>
+    <string name="button_hide_system_ui_fullscreen">隐藏系统 UI (全屏)</string>
+    <string name="button_hide_system_ui_navigation">隐藏系统 UI (导航栏)</string>
+    <string name="button_status_bar_dark">状态栏深色</string>
+    <string name="button_status_bar_light">状态栏浅色</string>
+</resources>
