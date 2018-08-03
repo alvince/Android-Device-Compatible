@@ -33,7 +33,6 @@ import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.annotation.RequiresApi;
 import android.text.TextUtils;
-import android.view.View;
 import android.view.ViewConfiguration;
 
 import java.io.File;
@@ -157,29 +156,6 @@ public class DeviceHelper {
         } else {  // fallback
             return !ViewConfiguration.get(context).hasPermanentMenuKey();
         }
-    }
-
-    /**
-     * 隐藏虚拟按键栏
-     */
-    public static void hideNavigationBar(final View contentView) {
-        if (contentView == null) return;
-        contentView.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                int uiVisibility = contentView.getSystemUiVisibility();
-                if ((uiVisibility & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) {
-                    return;
-                }
-                if (Build.VERSION.SDK_INT >= 19) {
-                    uiVisibility |= View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE;
-                } else {
-                    uiVisibility |= View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
-                }
-                contentView.setSystemUiVisibility(uiVisibility);
-            }
-        }, 200);
-
     }
 
     /**

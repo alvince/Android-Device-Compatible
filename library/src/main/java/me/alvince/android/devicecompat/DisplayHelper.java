@@ -27,6 +27,7 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.content.res.Resources;
+import android.graphics.Color;
 import android.graphics.Point;
 import android.os.Build;
 import android.provider.Settings;
@@ -127,14 +128,6 @@ public class DisplayHelper {
     public static float fromDip(@Nullable Context context, float dip) {
         Resources r = context != null ? context.getResources() : Resources.getSystem();
         return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dip, r.getDisplayMetrics());
-    }
-
-    /**
-     * Convert dimens from sp to px.
-     */
-    public static float fromSp(Context context, float spValue) {
-        Resources r = context != null ? context.getResources() : Resources.getSystem();
-        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, spValue, r.getDisplayMetrics());
     }
 
     /**
@@ -240,6 +233,23 @@ public class DisplayHelper {
     }
 
     /**
+     * Make content layout immersive.
+     */
+    @RequiresApi(Build.VERSION_CODES.KITKAT)
+    public static void makeContentImmersive(Activity activity) {
+        Window window = activity.getWindow();
+        window.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
+            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+            window.setStatusBarColor(Color.TRANSPARENT);
+        }
+    }
+
+    /**
      * 调整系统状态栏色调
      *
      * @param dark light mode
@@ -251,10 +261,12 @@ public class DisplayHelper {
             Window window = activity.getWindow();
             View decorView = window.getDecorView();
             if (dark) {
-                decorView.setSystemUiVisibility(decorView.getSystemUiVisibility() | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+                decorView.setSystemUiVisibility(decorView.getSystemUiVisibility()
+                        | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
             } else {
                 int systemUiVisibility = decorView.getSystemUiVisibility();
-                if ((systemUiVisibility & View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR) == View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR) {
+                if ((systemUiVisibility & View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR)
+                        == View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR) {
                     decorView.setSystemUiVisibility(systemUiVisibility ^ View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
                 }
             }
