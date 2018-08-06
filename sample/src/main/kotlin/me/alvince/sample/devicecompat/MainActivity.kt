@@ -9,6 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.layout_main_content.*
 import me.alvince.android.devicecompat.DeviceHelper
 import me.alvince.android.devicecompat.DisplayHelper
 
@@ -58,6 +59,8 @@ class MainActivity : AppCompatActivity() {
             btn_status_bart_mode.isSelected = light
 
             appbar.setBackgroundColor(
+                    if (light) Color.TRANSPARENT else ContextCompat.getColor(this, R.color.colorPrimaryDark))
+            toolbar.setBackgroundColor(
                     if (light) Color.TRANSPARENT else ContextCompat.getColor(this, R.color.colorPrimary))
             toolbar.setTitleTextColor(if (light) Color.BLACK else Color.WHITE)
         }
